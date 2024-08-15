@@ -15,9 +15,22 @@ jobs:
           pipx ensurepath
           sudo pipx ensurepath --global
           pipx install git+https://gitlab.com/fdroid/fdroidserver
+      
+      - name: Cache F-Droid data
+        id: cache-fdroiddata
+        uses: actions/cache@v4
+        with:
+          path: fdroiddata
+          key: ${{ runner.os }}-fdroiddata
 
-      - name: Clone Fdroiddata
-        run: git clone https://gitlab.com/fdroid/fdroiddata
+      - name: Clone F-Droid data
+        if: steps.cache-fdroiddata.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        repository: f-droid/fdroiddata
+
+      - name: Pull F-Droid data
+        if: steps.cache-fdroiddata.outputs.cache-hit == 'true'
+        run: git -C fdroiddata pull
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
