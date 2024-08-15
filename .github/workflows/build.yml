@@ -14,7 +14,7 @@ jobs:
           sudo apt install pipx
           pipx ensurepath
           sudo pipx ensurepath --global
-          pipx install https://gitlab.com/fdroid/fdroidserver
+          pipx install git+https://gitlab.com/fdroid/fdroidserver
 
       - name: Clone Fdroiddata
         run: git clone https://gitlab.com/fdroid/fdroiddata
