@@ -28,6 +28,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install NDK
+        run: sdkmanager "ndk;26.2.11394342"
+
       - name: Build
         run: cd fdroiddata && fdroid build org.mozilla.fennec_fdroid:1290020 -v
 
