@@ -9,10 +9,11 @@ jobs:
 
     steps:
       - name: Install Fdroidserver
-        run: sudo apt update -y && \
-          sudo apt install pipx && \
-          pipx ensurepath && \
-          sudo pipx ensurepath --global && \
+        run: >
+          apt update -y
+          apt install pipx
+          pipx ensurepath
+          sudo pipx ensurepath --global
           pipx install https://gitlab.com/fdroid/fdroidserver
 
       - name: Clone Fdroiddata
