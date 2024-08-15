@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Install Fdroidserver
-        run: sudo apt-get install fdroidserver -y
+        run: sudo apt-get update -y && sudo apt-get install fdroidserver -y
 
       - name: Clone Fdroiddata
         run: git clone https://gitlab.com/fdroid/fdroiddata
