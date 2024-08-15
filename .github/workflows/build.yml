@@ -44,8 +44,12 @@ jobs:
       - name: Install NDK
         run: sdkmanager "ndk;26.2.11394342"
 
+      - name: Cache F-Droid build srclib
+        id: cache-build-srclib
+        uses: actions/cache@v4
+        with:
+          path: fdroiddata/build/srclib
+          key: ${{ runner.os }}-srclib
+
       - name: Build
         run: cd fdroiddata && fdroid build org.mozilla.fennec_fdroid:1290020 -v
-
-
-
