@@ -26,7 +26,8 @@ jobs:
       - name: Clone F-Droid data
         if: steps.cache-fdroiddata.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
-        repository: f-droid/fdroiddata
+        with:
+          repository: f-droid/fdroiddata
 
       - name: Pull F-Droid data
         if: steps.cache-fdroiddata.outputs.cache-hit == 'true'
