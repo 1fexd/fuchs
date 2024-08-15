@@ -24,14 +24,9 @@ jobs:
           key: ${{ runner.os }}-fdroiddata
 
       - name: Clone F-Droid data
-        if: steps.cache-fdroiddata.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
           repository: f-droid/fdroiddata
-
-      - name: Pull F-Droid data
-        if: steps.cache-fdroiddata.outputs.cache-hit == 'true'
-        run: git -C fdroiddata pull
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
