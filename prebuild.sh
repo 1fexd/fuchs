@@ -225,6 +225,7 @@ sed -i \
 # Configure
 sed -i -e '/check_android_tools("emulator"/d' build/moz.configure/android-sdk.configure
 cat << EOF > mozconfig
+ac_add_options --with-ccache=sccache
 ac_add_options --disable-crashreporter
 ac_add_options --disable-debug
 ac_add_options --disable-nodejs
