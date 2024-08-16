@@ -1,0 +1,145 @@
+Subject: [PATCH] Add toggle to disable external app prompt
+---
+Index: mobile/android/fenix/app/src/main/java/org/mozilla/fenix/browser/BaseBrowserFragment.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/browser/BaseBrowserFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/browser/BaseBrowserFragment.kt
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/browser/BaseBrowserFragment.kt	(revision 832124:eca5fa2a850bdd28b50cf4b3899b46ab244545dc)
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/browser/BaseBrowserFragment.kt	(revision 832124+:eca5fa2a850b+)
+@@ -883,6 +883,7 @@
+                 sessionId = customTabSessionId,
+                 fragmentManager = parentFragmentManager,
+                 launchInApp = { context.settings().shouldOpenLinksInApp(customTabSessionId != null) },
++                promptLaunchInExternalApp = { context.settings().promptOpenLinksInExternalApp },
+                 loadUrlUseCase = context.components.useCases.sessionUseCases.loadUrl,
+                 shouldPrompt = { context.settings().shouldPromptOpenLinksInApp() },
+                 failedToLaunchAction = { fallbackUrl ->
+Index: mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt	(revision 832124:eca5fa2a850bdd28b50cf4b3899b46ab244545dc)
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/settings/SettingsFragment.kt	(revision 832124+:eca5fa2a850b+)
+@@ -555,6 +555,17 @@
+         setupSearchPreference()
+         setupHomepagePreference()
+         setupTrackingProtectionPreference()
++        setupExternalAppPromptPreference()
++    }
++
++    internal fun setupExternalAppPromptPreference() {
++        val settings = requireContext().settings()
++        val preference = findPreference<Preference>(getPreferenceKey(R.string.pref_key_prompt_open_external_app))
++
++        preference?.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
++            settings.promptOpenLinksInExternalApp = newValue as Boolean
++            true
++        }
+     }
+ 
+     /**
+Index: mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt
+--- a/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt	(revision 832124:eca5fa2a850bdd28b50cf4b3899b46ab244545dc)
++++ b/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt	(revision 832124+:eca5fa2a850b+)
+@@ -1386,6 +1386,11 @@
+             false -> appContext.getString(R.string.pref_key_open_links_in_apps_never)
+         },
+     )
++    
++    var promptOpenLinksInExternalApp by booleanPreference(
++        appContext.getPreferenceKey(R.string.pref_key_prompt_open_external_app),
++        default = true
++    )
+ 
+     var allowDomesticChinaFxaServer by booleanPreference(
+         appContext.getPreferenceKey(R.string.pref_key_allow_domestic_china_fxa_server),
+Index: mobile/android/fenix/app/src/main/res/values/preference_keys.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/mobile/android/fenix/app/src/main/res/values/preference_keys.xml b/mobile/android/fenix/app/src/main/res/values/preference_keys.xml
+--- a/mobile/android/fenix/app/src/main/res/values/preference_keys.xml	(revision 832124:eca5fa2a850bdd28b50cf4b3899b46ab244545dc)
++++ b/mobile/android/fenix/app/src/main/res/values/preference_keys.xml	(revision 832124+:eca5fa2a850b+)
+@@ -233,6 +233,7 @@
+     <string name="pref_key_open_links_in_apps_always" translatable="false">pref_key_open_links_in_apps_always</string>
+     <string name="pref_key_open_links_in_apps_ask" translatable="false">pref_key_open_links_in_apps_ask</string>
+     <string name="pref_key_open_links_in_apps_never" translatable="false">pref_key_open_links_in_apps_never</string>
++    <string name="pref_key_prompt_open_external_app" translatable="false">pref_key_prompt_open_external_app</string>
+     <string name="pref_key_external_download_manager" translatable="false">pref_key_external_download_manager</string>
+     <string name="pref_key_allow_screenshots_in_private_mode" translatable="false">pref_key_allow_screenshots_in_private_mode</string>
+     <string name="pref_key_privacy_enable_global_privacy_control" translatable="false">pref_key_privacy_enable_global_privacy_control</string>
+Index: mobile/android/fenix/app/src/main/res/values/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/mobile/android/fenix/app/src/main/res/values/strings.xml b/mobile/android/fenix/app/src/main/res/values/strings.xml
+--- a/mobile/android/fenix/app/src/main/res/values/strings.xml	(revision 832124:eca5fa2a850bdd28b50cf4b3899b46ab244545dc)
++++ b/mobile/android/fenix/app/src/main/res/values/strings.xml	(revision 832124+:eca5fa2a850b+)
+@@ -657,6 +657,7 @@
+     <string name="preferences_open_links_in_apps_ask">Ask before opening</string>
+     <!-- Preference for open links in third party apps never open in apps option -->
+     <string name="preferences_open_links_in_apps_never">Never</string>
++    <string name="preferences_prompt_open_external_app">External app prompt</string>
+     <!-- Preference for open download with an external download manager app -->
+     <string name="preferences_external_download_manager">External download manager</string>
+     <!-- Preference for enabling gecko engine logs -->
+Index: mobile/android/fenix/app/src/main/res/xml/preferences.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/mobile/android/fenix/app/src/main/res/xml/preferences.xml b/mobile/android/fenix/app/src/main/res/xml/preferences.xml
+--- a/mobile/android/fenix/app/src/main/res/xml/preferences.xml	(revision 832124:eca5fa2a850bdd28b50cf4b3899b46ab244545dc)
++++ b/mobile/android/fenix/app/src/main/res/xml/preferences.xml	(revision 832124+:eca5fa2a850b+)
+@@ -171,6 +171,12 @@
+             android:title="@string/preferences_open_links_in_apps"
+             app:iconSpaceReserved="false" />
+ 
++        <androidx.preference.SwitchPreference
++                android:defaultValue="true"
++                android:key="@string/pref_key_prompt_open_external_app"
++                app:iconSpaceReserved="false"
++                android:title="@string/preferences_prompt_open_external_app" />
++
+         <androidx.preference.SwitchPreference
+             android:defaultValue="false"
+             android:key="@string/pref_key_external_download_manager"
+Index: mobile/android/android-components/components/feature/app-links/src/main/java/mozilla/components/feature/app/links/AppLinksFeature.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/mobile/android/android-components/components/feature/app-links/src/main/java/mozilla/components/feature/app/links/AppLinksFeature.kt b/mobile/android/android-components/components/feature/app-links/src/main/java/mozilla/components/feature/app/links/AppLinksFeature.kt
+--- a/mobile/android/android-components/components/feature/app-links/src/main/java/mozilla/components/feature/app/links/AppLinksFeature.kt	(revision 832124:eca5fa2a850bdd28b50cf4b3899b46ab244545dc)
++++ b/mobile/android/android-components/components/feature/app-links/src/main/java/mozilla/components/feature/app/links/AppLinksFeature.kt	(revision 832124+:eca5fa2a850b+)
+@@ -53,6 +53,7 @@
+     private val fragmentManager: FragmentManager? = null,
+     private val dialog: RedirectDialogFragment? = null,
+     private val launchInApp: () -> Boolean = { false },
++    private var promptLaunchInExternalApp: () -> Boolean = { false },
+     private val useCases: AppLinksUseCases = AppLinksUseCases(context, launchInApp),
+     private val failedToLaunchAction: (fallbackUrl: String?) -> Unit = {},
+     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase? = null,
+@@ -119,6 +120,11 @@
+         dialog.onConfirmRedirect = doOpenApp
+         dialog.onCancelRedirect = doNotOpenApp
+ 
++        if(!promptLaunchInExternalApp()) {
++            doNotOpenApp()
++            return
++        }
++
+         if (!isAlreadyADialogCreated()) {
+             dialog.showNow(fragmentManager, FRAGMENT_TAG)
+         }
