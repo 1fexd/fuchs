@@ -1,95 +1,25 @@
-diff -r d80eefe94738 mobile/android/geckoview/build.gradle
---- a/mobile/android/geckoview/build.gradle	Tue Nov 28 21:01:37 2023 +0000
-+++ b/mobile/android/geckoview/build.gradle	Fri Dec 15 11:32:38 2023 +0300
-@@ -222,7 +222,7 @@
-     implementation "androidx.annotation:annotation:1.6.0"
-     implementation "androidx.legacy:legacy-support-v4:1.0.0"
- 
--    implementation "com.google.android.gms:play-services-fido:21.1.0"
+diff -r 7a5e0a2b6726 -r 9ed61936fc73 mobile/android/geckoview/build.gradle
+--- a/mobile/android/geckoview/build.gradle	Tue Sep 03 14:03:45 2024 -0400
++++ b/mobile/android/geckoview/build.gradle	Tue Sep 03 14:05:53 2024 -0400
+diff -r 4d9f6aa91414 -r 0a6b2c06fb0a mobile/android/geckoview/build.gradle
+--- a/mobile/android/geckoview/build.gradle	Wed Oct 02 10:43:39 2024 -0400
++++ b/mobile/android/geckoview/build.gradle	Wed Oct 02 10:44:43 2024 -0400
+@@ -226,7 +226,7 @@
+     implementation ComponentsDependencies.androidx_collection
+     implementation ComponentsDependencies.androidx_core
+
+-    implementation ComponentsDependencies.play_services_fido
 +    implementation "org.microg.gms:play-services-fido:0.3.2.240913"
      implementation "org.yaml:snakeyaml:2.2"
- 
-     implementation "androidx.lifecycle:lifecycle-common:2.6.1"
-diff -r 14b32d530926 mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java
---- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java	Thu Jul 04 12:11:31 2024 +0000
-+++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java	Tue Jul 09 11:44:11 2024 -0400
+     implementation 'androidx.core:core:1.12.0'
+
+     implementation ComponentsDependencies.androidx_lifecycle_common
+diff -r 7a5e0a2b6726 -r 9ed61936fc73 mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java	Tue Sep 03 14:03:45 2024 -0400
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java	Tue Sep 03 14:05:53 2024 -0400
+diff -r 4d9f6aa91414 -r 0a6b2c06fb0a mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java
+--- a/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java	Wed Oct 02 10:43:39 2024 -0400
++++ b/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebAuthnTokenManager.java	Wed Oct 02 10:44:43 2024 -0400
 @@ -193,27 +193,14 @@
- 
+
        final Task<PendingIntent> intentTask;
- 
--      if (BuildConfig.MOZILLA_OFFICIAL) {
--        // Certain Fenix builds and signing keys are whitelisted for Web Authentication.
--        // See https://wiki.mozilla.org/Security/Web_Authentication
--        //
--        // Third party apps will need to get whitelisted themselves.
--        final Fido2PrivilegedApiClient fidoClient =
--            Fido.getFido2PrivilegedApiClient(GeckoAppShell.getApplicationContext());
--
--        intentTask = fidoClient.getRegisterPendingIntent(browserOptions);
--      } else {
--        // For non-official builds, websites have to opt-in to permit the
--        // particular version of Gecko to perform WebAuthn operations on
--        // them. See https://developers.google.com/digital-asset-links
--        // for the general form, and Step 1 of
--        // https://developers.google.com/identity/fido/android/native-apps
--        // for details about doing this correctly for the FIDO2 API.
--        final Fido2ApiClient fidoClient =
--            Fido.getFido2ApiClient(GeckoAppShell.getApplicationContext());
--
--        intentTask = fidoClient.getRegisterPendingIntent(requestOptions);
--      }
-+      // The privileged FIDO2 API normally is restricted to apps with package
-+      // names and signatures that Google knows to be a browser. microG does not
-+      // have such a list, instead it asks the user to confirm that the app doing
-+      // the request is indeed a browser app (only for the first request from
-+      // that app).
-+      final Fido2PrivilegedApiClient fidoClient =
-+          Fido.getFido2PrivilegedApiClient(GeckoAppShell.getApplicationContext());
-+      intentTask = fidoClient.getRegisterPendingIntent(browserOptions);
- 
-       intentTask.addOnSuccessListener(
-           pendingIntent -> {
-@@ -411,19 +398,12 @@
-               .build();
- 
-       final Task<PendingIntent> intentTask;
--      // See the makeCredential method for documentation about this
--      // conditional.
--      if (BuildConfig.MOZILLA_OFFICIAL) {
--        final Fido2PrivilegedApiClient fidoClient =
--            Fido.getFido2PrivilegedApiClient(GeckoAppShell.getApplicationContext());
-+      // See the makeCredential method for documentation about the FIDO2 API and
-+      // microG.
-+      final Fido2PrivilegedApiClient fidoClient =
-+          Fido.getFido2PrivilegedApiClient(GeckoAppShell.getApplicationContext());
- 
--        intentTask = fidoClient.getSignPendingIntent(browserOptions);
--      } else {
--        final Fido2ApiClient fidoClient =
--            Fido.getFido2ApiClient(GeckoAppShell.getApplicationContext());
--
--        intentTask = fidoClient.getSignPendingIntent(requestOptions);
--      }
-+      intentTask = fidoClient.getSignPendingIntent(browserOptions);
- 
-       intentTask.addOnSuccessListener(
-           pendingIntent -> {
-@@ -557,15 +537,9 @@
-   @WrapForJNI(calledFrom = "gecko")
-   private static GeckoResult<Boolean> webAuthnIsUserVerifyingPlatformAuthenticatorAvailable() {
-     final Task<Boolean> task;
--    if (BuildConfig.MOZILLA_OFFICIAL) {
--      final Fido2PrivilegedApiClient fidoClient =
--          Fido.getFido2PrivilegedApiClient(GeckoAppShell.getApplicationContext());
--      task = fidoClient.isUserVerifyingPlatformAuthenticatorAvailable();
--    } else {
--      final Fido2ApiClient fidoClient =
--          Fido.getFido2ApiClient(GeckoAppShell.getApplicationContext());
--      task = fidoClient.isUserVerifyingPlatformAuthenticatorAvailable();
--    }
-+    final Fido2PrivilegedApiClient fidoClient =
-+        Fido.getFido2PrivilegedApiClient(GeckoAppShell.getApplicationContext());
-+    task = fidoClient.isUserVerifyingPlatformAuthenticatorAvailable();
- 
-     final GeckoResult<Boolean> res = new GeckoResult<>();
-     task.addOnSuccessListener(

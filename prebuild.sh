@@ -43,7 +43,7 @@ function localize_maven {
 "$rustup"/rustup-init.sh -y --no-update-default-toolchain
 # shellcheck disable=SC1090,SC1091
 source "$HOME/.cargo/env"
-rustup default 1.78.0
+rustup default 1.81.0
 
 #
 # Fenix
@@ -102,6 +102,7 @@ case $(echo "$2" | cut -c 6) in
     0)
         abi=armeabi-v7a
         target=arm-linux-androideabi
+        export llvmtarget=ARM
         rusttarget=arm
         rustup target add thumbv7neon-linux-androideabi
         rustup target add armv7-linux-androideabi
@@ -109,12 +110,14 @@ case $(echo "$2" | cut -c 6) in
     1)
         abi=x86
         target=i686-linux-android
+        export llvmtarget=X86
         rusttarget=x86
         rustup target add i686-linux-android
         ;;
     2)
         abi=arm64-v8a
         target=aarch64-linux-android
+        export llvmtarget=AArch64
         rusttarget=arm64
         rustup target add aarch64-linux-android
         ;;
@@ -136,8 +139,6 @@ popd
 
 pushd "$glean"
 echo "rust.targets=linux-x86-64,$rusttarget" >> local.properties
-# Hack to fix `Unresolved reference: HistogramBase`
-echo "typealias HistogramMetricBase = mozilla.telemetry.glean.private.HistogramBase" >> glean-core/android/src/main/java/mozilla/telemetry/glean/private/HistogramBase.kt
 localize_maven
 popd
 
@@ -156,8 +157,6 @@ sed -i \
 # Hack to prevent too long string from breaking build
 sed -i '/val statusCmd/,+3d' plugins/config/src/main/java/ConfigPlugin.kt
 sed -i '/\/\/ Append "+"/a \        val statusSuffix = "+"' plugins/config/src/main/java/ConfigPlugin.kt
-# Hack to fix `Unresolved reference: HistogramBase`
-echo "typealias HistogramBase = mozilla.telemetry.glean.private.HistogramBase" >> components/service/glean/src/main/java/mozilla/components/service/glean/private/MetricAliases.kt
 popd
 
 #
@@ -166,7 +165,7 @@ popd
 
 pushd "$application_services"
 # Break the dependency on older A-C
-sed -i -e "/android-components = /s/126.0.1/${1%.0}/" gradle/libs.versions.toml
+sed -i -e "/android-components = /s/128.0.2/${1%.0}/" gradle/libs.versions.toml
 echo "rust.targets=linux-x86-64,$rusttarget" >> local.properties
 sed -i -e '/NDK ez-install/,/^$/d' libs/verify-android-ci-environment.sh
 sed -i -e '/content {/,/}/d' build.gradle
@@ -191,9 +190,6 @@ popd
 #
 
 pushd "$mozilla_release"
-# Revert https://bugzilla.mozilla.org/show_bug.cgi?id=1892493
-hg revert build/unix/elfhack/relrhack.cpp -r 4033da509139
-
 # Remove Mozilla repositories substitution and explicitly add the required ones
 patch -p1 --no-backup-if-mismatch --quiet < "$patches/gecko-localize_maven.patch"
 
@@ -202,6 +198,7 @@ patch -p1 --no-backup-if-mismatch --quiet < "$patches/gecko-liberate.patch"
 
 # Patch the use of proprietary and tracking libraries
 patch -p1 --no-backup-if-mismatch --quiet < "$patches/fenix-liberate.patch"
+patch -p1 --no-backup-if-mismatch --quiet < "$patches/remove_stray_firebase_reference.patch"
 
 # Fix v125 compile error
 patch -p1 --no-backup-if-mismatch --quiet < "$patches/gecko-fix-125-compile.patch"
@@ -222,6 +219,14 @@ sed -i \
     -e 's/max_wait_seconds=600/max_wait_seconds=1800/' \
     mobile/android/gradle.py
 
+# Patch the LLVM source code
+# Search clang- in https://android.googlesource.com/platform/ndk/+/refs/tags/ndk-r27/ndk/toolchains.py
+LLVM_SVN='522817'
+python3 $toolchain_utils/llvm_tools/patch_manager.py \
+    --svn_version $LLVM_SVN \
+    --patch_metadata_file $llvm_android/patches/PATCHES.json \
+    --src_path $llvm
+
 # Configure
 sed -i -e '/check_android_tools("emulator"/d' build/moz.configure/android-sdk.configure
 cat << EOF > mozconfig
@@ -238,6 +243,7 @@ ac_add_options --enable-update-channel=release
 ac_add_options --target=$target
 ac_add_options --with-android-ndk="$ANDROID_NDK"
 ac_add_options --with-android-sdk="$ANDROID_SDK"
+ac_add_options --with-libclang-path="$llvm/out/lib"
 ac_add_options --with-java-bin-path="/usr/bin"
 ac_add_options --with-gradle=$(command -v gradle)
 ac_add_options --with-wasi-sysroot="$wasi/build/install/wasi/share/wasi-sysroot"
