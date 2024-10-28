@@ -36,7 +36,8 @@ source "$HOME/.cargo/env"
 cargo install --force --vers 0.26.0 cbindgen
 
 # Build LLVM
-pushd $llvm
+pushd "$llvm"
+llvmtarget=$(cat "$llvm/targets_to_build")
 cmake -S llvm -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=out -DCMAKE_C_COMPILER=clang-18 \
     -DCMAKE_CXX_COMPILER=clang++-18 -DLLVM_ENABLE_PROJECTS="clang" -DLLVM_TARGETS_TO_BUILD="$llvmtarget" \
     -DLLVM_USE_LINKER=lld -DLLVM_BINUTILS_INCDIR=/usr/include -DLLVM_ENABLE_PLUGINS=FORCE_ON \
@@ -82,7 +83,7 @@ pushd "$mozilla_release"
 MOZ_CHROME_MULTILOCALE=$(< "$patches/locales")
 export MOZ_CHROME_MULTILOCALE
 ./mach build
-gradle :geckoview:publishWithGeckoBinariesReleasePublicationToMavenLocal
+gradle :geckoview:publishReleasePublicationToMavenLocal
 gradle :exoplayer2:publishReleasePublicationToMavenLocal
 popd
 

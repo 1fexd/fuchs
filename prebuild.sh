@@ -53,12 +53,12 @@ pushd "$fenix"
 
 # Set up the app ID, version name and version code
 sed -i \
-    -e 's|\.firefox|.fuchs|' \
+    -e 's|\.firefox|.fennec_fdroid|' \
     -e "s/Config.releaseVersionName(project)/'$1'/" \
     -e "s/Config.generateFennecVersionCode(arch, aab)/$2/" \
     app/build.gradle
 sed -i \
-    -e '/android:targetPackage/s/firefox/fuchs/' \
+    -e '/android:targetPackage/s/firefox/fennec_fdroid/' \
     app/src/release/res/xml/shortcuts.xml
 
 # Disable crash reporting
@@ -68,16 +68,16 @@ sed -i -e '/CRASH_REPORTING/s/true/false/' app/build.gradle
 sed -i -e '/TELEMETRY/s/true/false/' app/build.gradle
 
 # Let it be Fennec
-sed -i -e 's/Firefox Daylight/Fennec/; s/Firefox/Fuchs/g' \
+sed -i -e 's/Firefox Daylight/Fennec/; s/Firefox/Fennec/g' \
     app/src/*/res/values*/*strings.xml
 
 # Fenix uses reflection to create a instance of profile based on the text of
 # the label, see
 # app/src/main/java/org/mozilla/fenix/perf/ProfilerStartDialogFragment.kt#185
 sed -i \
-    -e '/Firefox(.*, .*)/s/Firefox/Fuchs/' \
-    -e 's/firefox_threads/fuchs_threads/' \
-    -e 's/firefox_features/fuchs_features/' \
+    -e '/Firefox(.*, .*)/s/Firefox/Fennec/' \
+    -e 's/firefox_threads/fennec_threads/' \
+    -e 's/firefox_features/fennec_features/' \
     app/src/main/java/org/mozilla/fenix/perf/ProfilerUtils.kt
 
 # Replace proprietary artwork
@@ -102,7 +102,7 @@ case $(echo "$2" | cut -c 6) in
     0)
         abi=armeabi-v7a
         target=arm-linux-androideabi
-        export llvmtarget=ARM
+        echo "ARM" > "$llvm/targets_to_build"
         rusttarget=arm
         rustup target add thumbv7neon-linux-androideabi
         rustup target add armv7-linux-androideabi
@@ -110,14 +110,14 @@ case $(echo "$2" | cut -c 6) in
     1)
         abi=x86
         target=i686-linux-android
-        export llvmtarget=X86
+        echo "X86" > "$llvm/targets_to_build"
         rusttarget=x86
         rustup target add i686-linux-android
         ;;
     2)
         abi=arm64-v8a
         target=aarch64-linux-android
-        export llvmtarget=AArch64
+        echo "AArch64" > "$llvm/targets_to_build"
         rusttarget=arm64
         rustup target add aarch64-linux-android
         ;;
@@ -165,7 +165,8 @@ popd
 
 pushd "$application_services"
 # Break the dependency on older A-C
-sed -i -e "/android-components = /s/128.0.2/${1%.0}/" gradle/libs.versions.toml
+sed -i -e "/android-components = /s/130.0.1/${1%.0}/" gradle/libs.versions.toml
+sed -i -e "/glean = /s/61.1.0/61.2.0/" gradle/libs.versions.toml
 echo "rust.targets=linux-x86-64,$rusttarget" >> local.properties
 sed -i -e '/NDK ez-install/,/^$/d' libs/verify-android-ci-environment.sh
 sed -i -e '/content {/,/}/d' build.gradle
@@ -203,14 +204,12 @@ patch -p1 --no-backup-if-mismatch --quiet < "$patches/remove_stray_firebase_refe
 # Fix v125 compile error
 patch -p1 --no-backup-if-mismatch --quiet < "$patches/gecko-fix-125-compile.patch"
 
-patch -p1 --no-backup-if-mismatch --quiet < "$patches/add_external_app_prompt_toggle.patch"
-
 # Fix v125 aar output not including native libraries
 sed -i \
     -e 's/singleVariant("debug")/singleVariant("release")/' \
     mobile/android/exoplayer2/build.gradle
 sed -i \
-    -e "s/singleVariant('withGeckoBinariesDebug')/singleVariant('withGeckoBinariesRelease')/" \
+    -e "s/singleVariant('debug')/singleVariant('release')/" \
     mobile/android/geckoview/build.gradle
 
 # Hack the timeout for
@@ -222,15 +221,14 @@ sed -i \
 # Patch the LLVM source code
 # Search clang- in https://android.googlesource.com/platform/ndk/+/refs/tags/ndk-r27/ndk/toolchains.py
 LLVM_SVN='522817'
-python3 $toolchain_utils/llvm_tools/patch_manager.py \
-    --svn_version $LLVM_SVN \
-    --patch_metadata_file $llvm_android/patches/PATCHES.json \
-    --src_path $llvm
+python3 "$toolchain_utils/llvm_tools/patch_manager.py" \
+    --svn_version "$LLVM_SVN" \
+    --patch_metadata_file "$llvm_android/patches/PATCHES.json" \
+    --src_path "$llvm"
 
 # Configure
 sed -i -e '/check_android_tools("emulator"/d' build/moz.configure/android-sdk.configure
 cat << EOF > mozconfig
-ac_add_options --with-ccache=sccache
 ac_add_options --disable-crashreporter
 ac_add_options --disable-debug
 ac_add_options --disable-nodejs

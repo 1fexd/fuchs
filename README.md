@@ -23,6 +23,8 @@ The second to last number of the VERCODE corresponds to the architecture to comp
 Licenses
 --------
 
+The scripts are licensed under the GNU Affero General Public License version 3 or later.
+
 Changes in the patch are licensed according to the header in the files this patch adds or modifies (Apache 2.0 or MPL 2.0).
 
 The artwork is licensed under the MPL 2.0.
