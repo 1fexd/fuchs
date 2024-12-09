@@ -195,6 +195,8 @@ popd
 #
 
 pushd "$mozilla_release"
+
+patch -p1 --no-backup-if-mismatch --quiet < "$patches/add_external_app_prompt_toggle.patch"
 # Remove Mozilla repositories substitution and explicitly add the required ones
 patch -p1 --no-backup-if-mismatch --quiet < "$patches/gecko-localize_maven.patch"
 
